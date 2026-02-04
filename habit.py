@@ -9,9 +9,9 @@ db = sqlite3.connect("Habittrack.db")
 cr = db.cursor()
 
 
-# cr.execute("create table if not exists habit (id integer primary key autoincrement,name text , goal integer)")
-# cr.execute(
-#     "create table if not exists logs (log_id integer primary key autoincrement, habit_id integer,  date text, completed_status text , foreign key (habit_id) references habit(id))")
+cr.execute("create table if not exists habit (id integer primary key autoincrement,name text , goal integer)")
+cr.execute(
+    "create table if not exists logs (log_id integer primary key autoincrement, habit_id integer,  date text, completed_status text , foreign key (habit_id) references habit(id))")
 
 
 def commit_close():
