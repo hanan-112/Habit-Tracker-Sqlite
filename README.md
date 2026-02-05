@@ -9,6 +9,6 @@ A lightweight, terminal-based application designed to track daily habits using a
 * **Progress Tracking:** View history and consistency for specific habits.
 
 ## 🛠️ Tech Stack
-* **Language:** Python 3.x
+* **Language:** Python 3
 * **Database:** SQLite3
 * **Environment:** Linux / Terminal
