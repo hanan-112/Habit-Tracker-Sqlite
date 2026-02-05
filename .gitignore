@@ -1,2 +1,16 @@
-*.db
+# Python bytecode (created when you run the script)
 __pycache__/
+*.py[cod]
+
+# SQLite database (contains your private habit data)
+*.db
+*.sqlite3
+
+# Virtual environments
+venv/
+env/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
