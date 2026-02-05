@@ -1,124 +1,93 @@
 import sqlite3
-from datetime import datetime, timedelta, date
+from datetime import datetime
 
-
-# set app
-
-db = sqlite3.connect("Habittrack.db")
-
+# 1. Connect once at the start
+db = sqlite3.connect("Habit.db")
 cr = db.cursor()
 
-
-cr.execute("create table if not exists habit (id integer primary key autoincrement,name text , goal integer)")
-cr.execute(
-    "create table if not exists logs (log_id integer primary key autoincrement, habit_id integer,  date text, completed_status text , foreign key (habit_id) references habit(id))")
-
-
-def commit_close():
-
-    db.commit()
-
-    db.close()
-
-
-message = """
-what do you want to do ?
-'a' : add new habit
-'l' : log
-'s' : show habits list
-choose :
-"""
-
-user_input = input(message).strip().lower()
+# Create tables
+cr.execute("CREATE TABLE IF NOT EXISTS habit (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, goal INTEGER)")
+cr.execute("""CREATE TABLE IF NOT EXISTS logs (
+              log_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+              habit_id INTEGER,  
+              date TEXT, 
+              completed_status TEXT, 
+              FOREIGN KEY (habit_id) REFERENCES habit(id))""")
 
 
 def add_habit():
-    habit_name = input("Write a habit").strip().title()
-    habit_goal = int(input("Enter your habit goal"))
-    cr.execute(
-        f"insert into habit  values (NULL,'{habit_name}','{habit_goal}')")
-    commit_close()
+    habit_name = input("Write a habit: ").strip().title()
+    habit_goal = int(input("Enter your weekly goal (days): "))
+    # Use ? placeholders for security
+    cr.execute("INSERT INTO habit VALUES (NULL, ?, ?)",
+               (habit_name, habit_goal))
+    db.commit()
+    print("Habit added successfully!")
 
 
 def log_track():
-    habit_id = int(input("Enter your habit ID"))
-    habit_date = input(
-        "Enter your habit full date .please follow this format (YYYY,MM,DD)").strip()
-
-    habit_status = input(
-        "Did you complete your habit? answer with : yes or no").strip().lower()
-    cr.execute(
-        f"insert into logs values (NULL,'{habit_id}','{habit_date}','{habit_status}')")
-
-    commit_close()
+    habit_id = int(input("Enter habit ID: "))
+    # Changed format to match the parser later
+    habit_date = input("Enter date (YYYY-MM-DD): ").strip()
+    habit_status = input("Completed? (yes/no): ").strip().lower()
+    cr.execute("INSERT INTO logs VALUES (NULL, ?, ?, ?)",
+               (habit_id, habit_date, habit_status))
+    db.commit()
+    print("Log saved!")
 
 
 def show_all_habits():
+    cr.execute("SELECT * FROM habit")
+    habit_list = cr.fetchall()
 
-    cr.execute("select * from habit")
+    if not habit_list:
+        print("No habits found.")
+        return
 
+    print("\n--- Your Habits ---")
+    for hab in habit_list:
+        print(f"ID: {hab[0]} | {hab[1]} (Goal: {hab[2]} days)")
 
-habit_list = cr.fetchall()
+    habit_id = int(input("\nEnter habit ID to see streak: "))
+    cr.execute(
+        "SELECT date FROM logs WHERE habit_id = ? AND completed_status = 'yes' ORDER BY date DESC", (habit_id,))
 
-print(f"You have {len(habit_list)} habits :")
+    date_db = cr.fetchall()
+    if not date_db:
+        print("No 'yes' logs found for this habit.")
+        return
 
-for hab in habit_list:
+    date_strings = [row[0] for row in date_db]
+    dates = [datetime.strptime(d, "%Y-%m-%d").date() for d in date_strings]
 
-    print(f"{hab[0]}_ {hab[1]} => {hab[2]}%")
+    streak_count = 1
+    if len(dates) > 1:
+        for i in range(len(dates) - 1):
+            gap = dates[i] - dates[i+1]
+            if gap.days == 1:
+                streak_count += 1
+            else:
+                break
 
-
-habit_id = int(input("Enter your habit ID"))
-
-cr.execute(
-
-    f"select date from logs where habit_id = ? order by date desc", (habit_id,))
-
-date_db = cr.fetchall()
-
-date_string = [row[0]for row in date_db]
-
-dates = [datetime.strptime(d, "%Y-%m-%d").date() for d in date_string]
-
-# Streak Calculation Logic
-
-streak_count = 1
-
-if len(dates) > 1:
-
-    for i in range(len(dates) - 1):
-
-        gap = dates[i]-dates[i+1]
-
-        if gap.days == 1:
-
-            streak_count += 1
-
-        else:
-
-            break
+    print(f"🔥 Current Streak: {streak_count} days!")
 
 
-print(f"🔥 Current Streak for {habit_id}: {streak_count} days!")
-
-commit_close()
-
-
-command_list = ['a', 'l', 's']
-
-if user_input in command_list:
+# 2. Main Loop
+while True:
+    message = "\n'a': Add | 'l': Log | 's': Show | 'e': Exit\nChoose: "
+    user_input = input(message).strip().lower()
 
     if user_input == 'a':
-
         add_habit()
-
     elif user_input == 'l':
-
         log_track()
-
-    else:
-
+    elif user_input == 's':
         show_all_habits()
+    elif user_input == 'e':
+        print("Goodbye!")
+        break
+    else:
+        print("Invalid choice.")
 
-else:
-
-    print("Invalid choice.")
+# 3. Close once at the very end
+db.close()
